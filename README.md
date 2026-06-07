@@ -41,24 +41,41 @@ Not allowed:
 - file paths
 - tokens or credentials
 
-## Blog consumption (later)
+## Automation
 
-The Hugo blog at `Umi4Life/umi4.life` vendors `data/activity.json` into `static/data/activity.json` during deploy. The blog renderer does not fetch private APIs directly.
+### Exporter (homelab)
 
-## Manual remote setup
+[`git-activity-exporter`](https://git.umi4.life/umi4life/git-activity-exporter) runs on a timer, exports counts, and pushes to this repo when `data/activity.json` changes.
 
-Create an empty public repository on GitHub first: `Umi4Life/git-activity`
+### Blog vendor CI
 
-```bash
-cd D:/Documents/Projects/git-activity
-git init
-git add .
-git commit -m "Initial sanitized git activity artifacts"
-git branch -M main
-git remote add origin https://github.com/Umi4Life/git-activity.git
-git push -u origin main
+When `data/activity.json` is pushed to `master`, GitHub Actions copies it into [`Umi4Life/umi4.life`](https://github.com/Umi4Life/umi4.life) at `static/data/activity.json` and pushes. That triggers the existing Hugo Pages deploy.
+
+Workflow: [`.github/workflows/vendor-to-umi4life.yml`](.github/workflows/vendor-to-umi4life.yml)
+
+### Required secret (one-time setup)
+
+In **this repo** → Settings → Secrets and variables → Actions:
+
+| Secret | Value |
+|---|---|
+| `UMI4LIFE_REPO_TOKEN` | Fine-grained PAT with **Contents: Read and write** on `Umi4Life/umi4.life` only |
+
+Without this secret, the vendor workflow cannot commit to the blog repo.
+
+## Operational loop
+
+```text
+homelab timer → git-activity-exporter → push git-activity (if changed)
+→ vendor CI → commit umi4.life/static/data/activity.json
+→ Hugo Pages deploy
 ```
 
-## Current status
+## Manual publish (optional)
 
-Initial `data/activity.json` uses sample counts for scaffolding. Replace with exporter-generated output from `git-activity-exporter` when live export is implemented.
+```bash
+cd /path/to/git-activity
+git add data/activity.json public/activity.svg
+git commit -m "Update sanitized git activity artifacts"
+git push
+```

@@ -1,0 +1,44 @@
+name: Vendor activity to blog
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - data/activity.json
+
+concurrency:
+  group: vendor-to-umi4life
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout git-activity
+        uses: actions/checkout@v4
+
+      - name: Checkout umi4.life
+        uses: actions/checkout@v4
+        with:
+          repository: Umi4Life/umi4.life
+          token: ${{ secrets.UMI4LIFE_REPO_TOKEN }}
+          path: umi4life
+          ref: master
+
+      - name: Copy activity data
+        run: cp data/activity.json umi4life/static/data/activity.json
+
+      - name: Commit and push to umi4.life
+        working-directory: umi4life
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add static/data/activity.json
+          git diff --staged --quiet && echo "No changes to vendor." && exit 0
+          git commit -m "chore: vendor git activity data from Umi4Life/git-activity"
+          git push
